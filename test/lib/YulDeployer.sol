@@ -16,8 +16,8 @@ contract YulDeployer is Test {
         uint8 decimals
     ) public returns (address) {
         string memory bashCommand = string.concat(
-            'cast abi-encode "f(bytes)" $(solc --yul yul/',
-            string.concat(fileName, ".yul --bin | tail -1)")
+            'cast abi-encode "f(bytes)" $(solc --strict-assembly yul/',
+            string.concat(fileName, ".yul --bin | grep '^[0-9a-fA-Z]*$')")
         );
 
         string[] memory inputs = new string[](3);
@@ -31,8 +31,8 @@ contract YulDeployer is Test {
             abi.encode(name, symbol, decimals)
         );
         //bytes memory bytecodeWithArgs = abi.encodePacked(bytecode, abi.encode("wvleak", "WVK", 18));
-        console.logBytes(bytecode);
-        console.logBytes(bytecodeWithArgs);
+        // console.logBytes(bytecode);
+        // console.logBytes(bytecodeWithArgs);
 
         ///@notice deploy the bytecode with the create instruction
         address deployedAddress;

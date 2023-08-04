@@ -15,6 +15,7 @@ object "ERC20" {
 
     //set owner
     sstore(ownerSlot(), caller())
+
     
     //handle strings like in solidity
     //
@@ -40,10 +41,7 @@ object "ERC20" {
         // if iszero(eq(mod(nameLength, 0x20), 0)){
         //     incrementEnd := add(div(nameLength, 0x20), 1)
         // }
-        for 
-            { let i := 0 }
-            lt(i, incrementEnd)
-            { i := add(i, 1) }
+        for { let i := 0 } lt(i, incrementEnd) { i := add(i, 1) }
         {
             sstore(
                 add(nameDataSlot, i),
@@ -52,7 +50,7 @@ object "ERC20" {
         }
 
 
-    // }
+     }
     //set symbol
     
     let symbolOffset := mload(0)
