@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0;
+pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "./lib/YulDeployer.sol";
 
 interface ERC20Yul {
     function name() external view returns (string memory);
-    function symbol() external view returns (string memory);
-    function decimals() external view returns (uint8);
 
+    function symbol() external view returns (string memory);
+
+    function decimals() external view returns (uint8);
 }
 
 contract ERC20YulTest is Test {
@@ -17,7 +18,9 @@ contract ERC20YulTest is Test {
     ERC20Yul ERC20YulContract;
 
     function setUp() public {
-        ERC20YulContract = ERC20Yul(yulDeployer.deployContract("ERC20Yul", "wvleak", "WVK", 18));
+        ERC20YulContract = ERC20Yul(
+            yulDeployer.deployContract("ERC20Yul", "wvleak", "WVK", 18)
+        );
     }
 
     // function testERC20Yul() public {
