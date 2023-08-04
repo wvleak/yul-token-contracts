@@ -1,13 +1,18 @@
 object "ERC20" {
   code {
-    /* =============================================
-    * Storage slots
-    * =============================================
-    */
+    /** 
+     * =============================================
+     * HELPERS
+     * =============================================
+     */
     function ownerSlot() -> p { p := 0 }
     function nameSlot() -> p { p := 1 }
     function symbolSlot() -> p { p := 2 }
     function decimalSlot() -> p { p := 3 }    
+    function getStringLocation(slot) -> l {
+        mstore(0, slot)
+        l := keccak256(0, 0x20)
+    }  
 
     // copy arguments into memory
     codecopy(0, datasize("ERC20"), sub(codesize(), datasize("ERC20"))) // encoded after the main code 
@@ -25,26 +30,26 @@ object "ERC20" {
     let nameLength := mload(nameOffset)
     if lt(nameLength, 0x20){
         let nameData := mload(add(nameOffset, 0x20))
-        //let value := mul(nameLength, 2)
-        let value := or(0x1, 0x0)
-        //let value := nameData
-        sstore(nameSlot(), value) // store length * 2 to ensure the lowest bit is set to 0, which distinguishes short arrays from long arrays.
+        sstore(nameSlot(), or(nameData, mul(nameLength, 2))) // store length * 2 to ensure the lowest bit is set to 0, which distinguishes short arrays from long arrays.
     }
     if gt(nameLength, 0x1f){
         sstore(nameSlot(), add(mul(nameLength, 2), 1)) // store length * 2 + 1 to ensure the lowest bit is set to 1, which distinguishes long arrays from short arrays.
-        mstore(fmp, nameSlot())
-        let nameDataSlot := keccak256(fmp, 0x20)
-        let incrementEnd := 2
-        // if eq(mod(nameLength, 0x20), 0) {
-        //     incrementEnd := div(nameLength, 0x20)
-        // }
-        // if iszero(eq(mod(nameLength, 0x20), 0)){
-        //     incrementEnd := add(div(nameLength, 0x20), 1)
-        // }
+        let nameLocation := getStringLocation(nameSlot())
+
+        // Get the count of storage slots that will occupy the name.
+        let incrementEnd 
+        if eq(mod(nameLength, 0x20), 0) {
+            incrementEnd := div(nameLength, 0x20)
+        }
+        if iszero(eq(mod(nameLength, 0x20), 0)){
+            incrementEnd := add(div(nameLength, 0x20), 1)
+        }
+
+        // Store in storage
         for { let i := 0 } lt(i, incrementEnd) { i := add(i, 1) }
         {
             sstore(
-                add(nameDataSlot, i),
+                add(nameLocation, i),
                 mload(add(nameOffset, mul(0x20, add(i, 1))))
             )
         }
@@ -53,7 +58,7 @@ object "ERC20" {
      }
     //set symbol
     
-    let symbolOffset := mload(0)
+    let symbolOffset := mload(0x20)
     let symbolLength := mload(symbolOffset)
     if lt(symbolLength, 0x20){
         let symbolData := mload(add(symbolOffset, 0x20))
@@ -61,22 +66,25 @@ object "ERC20" {
     }
     if gt(symbolLength, 0x1f){
         sstore(symbolSlot(), add(mul(symbolLength, 2), 1)) // store length * 2 + 1 to ensure the lowest bit is set to 1, which distinguishes long arrays from short arrays.
-        mstore(fmp, symbolSlot())
-        let symbolDataSlot := keccak256(fmp, 0x20)
-        let incrementEnd := 0
+        let symbolLocation := getStringLocation(symbolSlot())
+
+        // Get the count of storage slots that will occupy the symbol.
+        let storageSlotCount
         if eq(mod(symbolLength, 0x20), 0) {
-            incrementEnd := div(symbolLength, 0x20)
+            storageSlotCount := div(symbolLength, 0x20)
         }
         if iszero(eq(mod(symbolLength, 0x20), 0)){
-            incrementEnd := add(div(symbolLength, 0x20), 1)
+            storageSlotCount := add(div(symbolLength, 0x20), 1)
         }
+
+        // Store in storage
         for 
             { let i := 0 }
-            lt(i, incrementEnd)
+            lt(i, storageSlotCount)
             { i := add(i, 1) }
         {
             sstore(
-                add(symbolDataSlot, i),
+                add(symbolLocation, i),
                 mload(add(symbolOffset, mul(0x20, add(i, 1))))
             )
         }
@@ -87,7 +95,6 @@ object "ERC20" {
     // set decimals
     //
     let decimalsOffset := 0x40 // appears after both string offsets
-    //sstore(3, mload(decimalsOffset))
     sstore(decimalSlot(), mload(decimalsOffset))
 
 
@@ -97,36 +104,100 @@ object "ERC20" {
   object "Runtime" {
     // 
     code {
-        // // nonpayable check
-        // if iszero(iszero(callvalue())) {
-        //     revert(0, 0)
-        // }
-
+        // nonpayable check
+        if iszero(iszero(callvalue())) {
+            revert(0, 0)
+        }
 
         switch selector()
-        case 0x06fdde03 /* name()*/{
-
-            let length := sload(nameSlot())
-
-            // Allocate memory for the string
+        case 0x8da5cb5b /* owner() */{
+            mstore(0, owner())
+            return(0, 0x20)
+        }
+        case 0x06fdde03 /* name() */{
+             
             let fmp := mload(0x40)
-            mstore(fmp, 0x20)
-            mstore(add(fmp, 0x20), length)
-            
-            // for {let i := 0} lt(i, length) {add(i, 1)} {
-            //     mstore8(add(fmp, 0x40), 0x40)
-            // }
-            mstore8(add(fmp, 0x40), 0x40)
-            mstore8(add(fmp, 0x41), 0x74)
 
-            // Memory pointer to the first element of the string
-            return(fmp, 0x42)
+            let nameData := name()
 
-            // let value := name()
-            // mstore(0x0, value)
-            // return(0x0, 0x20)
+            // if small string
+            if iszero(and(nameData, 1)) {
+                let nameLength := and(nameData, 0xff)
+                let nameValue := and(nameData, not(0xff))
+                mstore(fmp, 0x20)
+                mstore(add(fmp, 0x20), nameLength)
+                mstore(add(fmp, 0x40), nameValue)
+                return(fmp, 0x60)
+            }
+            // if large string
+            if and(nameData, 1) {
+                let nameLength := nameData
+                let nameLocation := getStringLocation(nameSlot())
+                mstore(fmp, 0x20)
+                mstore(add(fmp, 0x20), nameLength)
 
-            
+                // Retrieve the count of occupied storage slots used to store the name.
+                let storageSlotCount 
+                if eq(mod(nameLength, 0x20), 0) {
+                    storageSlotCount := div(nameLength, 0x20)
+                }
+                if iszero(eq(mod(nameLength, 0x20), 0)){
+                    storageSlotCount := add(div(nameLength, 0x20), 1)
+                }
+                // Store the name in memory
+                for { let i := 0 } lt(i, storageSlotCount) { i := add(i, 1) }
+                {
+                    mstore(
+                        add(fmp, mul(0x40, add(i, 1))),
+                        sload(add(nameLocation, i))
+                    )
+                }
+
+                return(fmp, add(0x40, nameLength))
+                
+            }      
+        }
+        case 0x95d89b41 /* symbol() */{
+
+            let fmp := mload(0x40)
+
+            let symbolData := symbol()
+
+            // if small string
+            if iszero(and(symbolData, 1)) {
+                let symbolLength := and(symbolData, 0xff)
+                let symbolValue := and(symbolData, not(0xff))
+                mstore(fmp, 0x20)
+                mstore(add(fmp, 0x20), symbolLength)
+                mstore(add(fmp, 0x40), symbolValue)
+                return(fmp, 0x60)
+            }
+            // if large string
+            if and(symbolData, 1) {
+                let symbolLength := symbolData
+                let symbolLocation := getStringLocation(symbolSlot())
+                mstore(fmp, 0x20)
+                mstore(add(fmp, 0x20), symbolLength)
+
+                // Retrieve the count of occupied storage slots used to store the symbol.
+                let storageSlotCount 
+                if eq(mod(symbolLength, 0x20), 0) {
+                    storageSlotCount := div(symbolLength, 0x20)
+                }
+                if iszero(eq(mod(symbolLength, 0x20), 0)){
+                    storageSlotCount := add(div(symbolLength, 0x20), 1)
+                }
+                // Store the symbol in memory
+                for { let i := 0 } lt(i, storageSlotCount) { i := add(i, 1) }
+                {
+                    mstore(
+                        add(fmp, mul(0x40, add(i, 1))),
+                        sload(add(symbolLocation, i))
+                    )
+                }
+                
+                return(fmp, add(0x40, symbolLength))
+            }         
         }
         case 0x313ce567 /* decimals() */{
             let fmp := mload(0x40)
@@ -137,26 +208,49 @@ object "ERC20" {
 
 
 
-        function selector() -> s {
-            s := shr(224, calldataload(0))
+
+
+        function owner() -> o {
+            o := sload(ownerSlot())
         }
 
         function name() -> n {
-            n := sload(0)
+            n := sload(nameSlot())
         }
 
         function symbol() -> s {
-            s := sload(0x20)
+            s := sload(symbolSlot())
         }
 
         function decimals() -> d {
-            d := sload(3)
+            d := sload(decimalSlot())
         }
+
+    /** 
+     * =============================================
+     * STORAGE SLOTS
+     * =============================================
+     */
 
         function ownerSlot() -> p { p := 0 }
         function nameSlot() -> p { p := 1 }
         function symbolSlot() -> p { p := 2 }
-        function decimalSlot() -> p { p := 3 }   
+        function decimalSlot() -> p { p := 3 } 
+
+    /** 
+     * =============================================
+     * HELPERS
+     * =============================================
+     */
+
+        function selector() -> s {
+            s := shr(224, calldataload(0))
+        }       
+
+        function getStringLocation(slot) -> l {
+            mstore(0, slot)
+            l := keccak256(0, 0x20)
+        }  
       
     }
   }

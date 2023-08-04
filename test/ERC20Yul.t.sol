@@ -5,6 +5,8 @@ import "forge-std/Test.sol";
 import "./lib/YulDeployer.sol";
 
 interface ERC20Yul {
+    function owner() external view returns (address);
+
     function name() external view returns (string memory);
 
     function symbol() external view returns (string memory);
@@ -19,7 +21,14 @@ contract ERC20YulTest is Test {
 
     function setUp() public {
         ERC20YulContract = ERC20Yul(
-            yulDeployer.deployContract("ERC20Yul", "wvleak", "WVK", 18)
+            yulDeployer.deployContract(
+                "ERC20Yul",
+                "Lorem Ipsum is simply dummy text of the printing and typesetting industry",
+                //"wvleak",
+                //"WVK",
+                "Lorem Ipsum is simply dummy text of the printing and typesetting industry",
+                18
+            )
         );
     }
 
@@ -31,14 +40,21 @@ contract ERC20YulTest is Test {
     //     assertTrue(success);
     //     assertEq(data, callDataBytes);
     // }
+    function testGetOwner() public {
+        console.log(ERC20YulContract.owner());
+    }
 
-    function test_Name() public {
+    function testGetName() public {
         // bytes memory name = ERC20YulContract.name();
         // console.logBytes(name);
         console.log(ERC20YulContract.name());
     }
 
-    function testDecimals() public {
+    function testGetSymbol() public {
+        console.log(ERC20YulContract.symbol());
+    }
+
+    function testGetDecimals() public {
         console.log(ERC20YulContract.decimals());
     }
 }
