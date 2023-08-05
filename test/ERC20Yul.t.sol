@@ -16,6 +16,10 @@ interface ERC20Yul {
     function totalSupply() external view returns (uint256);
 
     function balanceOf(address) external view returns (uint256);
+
+    function transfer(address, uint256) external;
+
+    function mint(address, uint256) external; // Only owner can invoke
 }
 
 contract ERC20YulTest is Test {
@@ -62,7 +66,22 @@ contract ERC20YulTest is Test {
         console.log(ERC20YulContract.decimals());
     }
 
+    function testMint() public {
+        vm.prank(address(yulDeployer));
+        ERC20YulContract.mint(address(this), 1);
+    }
+
     function testGetBalanceOf() public {
+        vm.prank(address(yulDeployer));
+        ERC20YulContract.mint(address(this), 10);
         console.log(ERC20YulContract.balanceOf(address(this)));
+    }
+
+    function testTransfer() public {
+        vm.prank(address(yulDeployer));
+        ERC20YulContract.mint(address(this), 10);
+        console.log(ERC20YulContract.balanceOf(address(this)));
+        ERC20YulContract.transfer(address(yulDeployer), 5);
+        console.log(ERC20YulContract.balanceOf(address(yulDeployer)));
     }
 }

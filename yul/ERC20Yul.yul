@@ -209,8 +209,45 @@ object "ERC20" {
         }
 
         case 0x70a08231 /* balanceOf(address) */{
-            let _ownerOf := calldataload(0x20)
+            let _ownerOf := calldataload(0x04)
             returnUint(balanceOf(_ownerOf))
+        }
+
+        case 0xa9059cbb /* transfer(address,uint256) */{
+            let _ownerOf := caller()
+            let to := calldataload(0x04)
+            let amount := calldataload(0x24)
+            //Check balance
+            let bal := balanceOf(_ownerOf)
+            if lt(bal, amount){
+                revert(0,0)
+            }
+              
+
+            // decrease caller balance
+            sstore(balancePos(_ownerOf), sub(balanceOf(_ownerOf), amount))
+
+            // increase receiver balance
+            sstore(balancePos(to), safeAdd(balanceOf(to), amount))
+        }
+
+        case 0x40c10f19 /* mint(address,uint256) */{
+            // Only owner check
+            if iszero(eq(caller(), owner())){
+                revert(0,0)
+            }
+
+            let to := calldataload(0x04)
+            let amount := calldataload(0x24)
+
+            // increase receiver balance
+            sstore(balancePos(to), safeAdd(balanceOf(to), amount))
+            //sstore(balancePos(to), amount)
+            // let value := calldataload(0x24)
+            // mstore(0, value)
+            // return(0, 0x20)
+
+
         }
 
         default {
@@ -243,7 +280,7 @@ object "ERC20" {
         }
 
         function balanceOf(_ownerOf) -> bal {
-            bal := sload(balancePos(_ownerOf, balanceSlot()))
+            bal := sload(balancePos(_ownerOf))
         }
 
     /** 
@@ -257,7 +294,7 @@ object "ERC20" {
         function symbolSlot() -> p { p := 2 }
         function decimalSlot() -> p { p := 3 } 
         function totalSupplySlot() -> p { p := 4 } 
-        function balanceSlot() -> p { p := 4 } // mapping(address=>uint256)
+        function balanceSlot() -> p { p := 5 } // mapping(address=>uint256)
 
     /** 
      * =============================================
@@ -274,9 +311,9 @@ object "ERC20" {
             l := keccak256(0, 0x20)
         } 
 
-        function balancePos(value, slot) -> p {
+        function balancePos(value) -> p {
             mstore(0, value)
-            mstore(0x20, slot)
+            mstore(0x20, balanceSlot())
             p := keccak256(0, 0x40)
         }
 
@@ -284,6 +321,13 @@ object "ERC20" {
             let fmp := mload(0x40)
             mstore(fmp, value)
             return(fmp, 0x20)
+        }
+
+        function safeAdd(a, b) -> value {
+            value := add(a, b)
+            if or(lt(value, a), lt(value, b)){
+                revert(0,0)
+            }
         }
       
     }
