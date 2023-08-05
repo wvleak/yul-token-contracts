@@ -204,6 +204,19 @@ object "ERC20" {
             mstore(fmp, decimals())
             return(fmp, 0x20)
         }
+        case 0x18160ddd /* totalSupply() */{
+            let fmp := mload(0x40)
+            mstore(fmp, decimals())
+            return(fmp, 0x20)
+        }
+        case 0x70a08231 /* balanceOf(address) */{
+            let _owner := calldataload(0x20)
+            let bal := sload(balancePos(_owner, balanceSlot()))
+            
+            let fmp := mload(0x40)
+            mstore(fmp, bal)
+            return(fmp, 0x20)
+        }
 
 
 
@@ -226,6 +239,10 @@ object "ERC20" {
             d := sload(decimalSlot())
         }
 
+        function totalSupply() -> t {
+            t := sload(totalSupplySlot())
+        }
+
     /** 
      * =============================================
      * STORAGE SLOTS
@@ -236,6 +253,8 @@ object "ERC20" {
         function nameSlot() -> p { p := 1 }
         function symbolSlot() -> p { p := 2 }
         function decimalSlot() -> p { p := 3 } 
+        function totalSupplySlot() -> p { p := 4 } 
+        function balanceSlot() -> p { p := 4 } // mapping(address=>uint256)
 
     /** 
      * =============================================
@@ -250,7 +269,13 @@ object "ERC20" {
         function getStringLocation(slot) -> l {
             mstore(0, slot)
             l := keccak256(0, 0x20)
-        }  
+        } 
+
+        function balancePos(value, slot) -> p {
+            mstore(0, value)
+            mstore(0x20, slot)
+            p := keccak256(0, 0x40)
+        }
       
     }
   }
