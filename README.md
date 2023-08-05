@@ -2,6 +2,8 @@
 
 This is an implementation of the [eip-20](https://eips.ethereum.org/EIPS/eip-20) specification in pure Yul.
 
+(ERC721 implementation on progress)
+
 ## Running tests
 
 Make sure you have foundry and the solidity compiler installed
