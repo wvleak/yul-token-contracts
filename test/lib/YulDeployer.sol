@@ -26,14 +26,12 @@ contract YulDeployer is Test {
         inputs[2] = bashCommand;
 
         bytes memory bytecode = abi.decode(vm.ffi(inputs), (bytes));
+
+        ///@dev encode the constructor arguments after the code
         bytes memory bytecodeWithArgs = abi.encodePacked(
             bytecode,
             abi.encode(name, symbol, decimals)
         );
-        //bytes memory bytecodeWithArgs = abi.encodePacked(bytecode, abi.encode("wvleak", "WVK", 18));
-        // console.logBytes(bytecode);
-        // console.logBytes(bytecodeWithArgs);
-
         ///@notice deploy the bytecode with the create instruction
         address deployedAddress;
         assembly {

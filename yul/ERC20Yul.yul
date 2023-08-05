@@ -45,7 +45,7 @@ object "ERC20" {
      * =============================================
      */
 
-    /* set owner */
+    /* set owner (the deployer) */
     sstore(ownerSlot(), caller())
 
     /* set name */
@@ -124,11 +124,11 @@ object "ERC20" {
             return(0, 0x20)
         }
         case 0x06fdde03 /* name() */{
-            returnString(name())
+            returnString(name(), nameSlot())
         }
 
         case 0x95d89b41 /* symbol() */{
-            returnString(symbol())      
+            returnString(symbol(), symbolSlot())      
         }
 
         case 0x313ce567 /* decimals() */{
@@ -153,6 +153,9 @@ object "ERC20" {
 
             let to := decodeAddress(0)
             let amount := decodeUint(1)
+
+            // Increase total supply
+            sstore(totalSupplySlot(), safeAdd(totalSupply(), amount))
 
             // Increase receiver balance
             sstore(balancePos(to), safeAdd(balanceOf(to), amount))
@@ -360,21 +363,21 @@ object "ERC20" {
             return(0, 0x20)
         }
 
-        function returnString(stringData) {
+        function returnString(stringData, slot) {
             let fmp := mload(0x40)
             // if small string
             if iszero(and(stringData, 1)) {
-                let stringLength := and(stringData, 0xff)
+                let stringLength := div(and(stringData, 0xff), 2)
                 let stringValue := and(stringData, not(0xff))
                 mstore(fmp, 0x20)
                 mstore(add(fmp, 0x20), stringLength)
                 mstore(add(fmp, 0x40), stringValue)
-                return(fmp, 0x60)
+                return(fmp, add(0x40, stringLength))
             }
             // if large string
             if and(stringData, 1) {
-                let stringLength := stringData
-                let stringLocation := getStringLocation(stringSlot())
+                let stringLength := div(stringData, 2)
+                let stringLocation := getStringLocation(slot)
                 mstore(fmp, 0x20)
                 mstore(add(fmp, 0x20), stringLength)
 
@@ -395,7 +398,7 @@ object "ERC20" {
                     )
                 }
                 
-                return(fmp, add(0x40, symbolLength))
+                return(fmp, add(0x40, stringLength))
             }     
         }
         

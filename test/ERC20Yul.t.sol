@@ -19,7 +19,7 @@ interface ERC20Yul {
 
     function transfer(address, uint256) external returns (bool);
 
-    function mint(address, uint256) external; // Only owner can invoke
+    function mint(address, uint256) external;
 
     function allowance(address, address) external returns (uint256);
 
@@ -32,94 +32,139 @@ contract ERC20YulTest is Test {
     YulDeployer yulDeployer = new YulDeployer();
 
     ERC20Yul ERC20YulContract;
+    string name = "testToken";
+    string symbol = "TST";
 
     function setUp() public {
         ERC20YulContract = ERC20Yul(
-            yulDeployer.deployContract(
-                "ERC20Yul",
-                //"Lorem Ipsum is simply dummy text of the printing and typesetting industry",
-                "wvleak",
-                "WVK",
-                //"Lorem Ipsum is simply dummy text of the printing and typesetting industry",
-                18
-            )
+            yulDeployer.deployContract("ERC20Yul", name, symbol, 18)
         );
     }
 
-    // function testERC20Yul() public {
-    //     bytes memory callDataBytes = abi.encodeWithSignature("randomBytes()");
-
-    //     (bool success, bytes memory data) = address(ERC20YulContract).call{gas: 100000, value: 0}(callDataBytes);
-
-    //     assertTrue(success);
-    //     assertEq(data, callDataBytes);
-    // }
-    function testGetOwner() public {
-        console.log(ERC20YulContract.owner());
+    /* ----- Test deployment ----- */
+    function test_Init() public {
+        assertEq(ERC20YulContract.owner(), address(yulDeployer));
+        assertEq(ERC20YulContract.name(), name);
+        assertEq(ERC20YulContract.symbol(), symbol);
+        assertEq(ERC20YulContract.decimals(), 18);
     }
 
-    function testGetName() public {
-        // bytes memory name = ERC20YulContract.name();
-        // console.logBytes(name);
-        console.log(ERC20YulContract.name());
+    /* ----- Test getter functions ----- */
+    function test_GetBalanceOf() public {
+        assertEq(ERC20YulContract.balanceOf(address(this)), 0);
     }
 
-    function testGetSymbol() public {
-        console.log(ERC20YulContract.symbol());
+    function test_GetTotalSupply() public {
+        assertEq(ERC20YulContract.totalSupply(), 0);
     }
 
-    function testGetDecimals() public {
-        console.log(ERC20YulContract.decimals());
-    }
-
-    function testMint() public {
-        vm.prank(address(yulDeployer));
-        ERC20YulContract.mint(address(this), 1);
-    }
-
-    function testGetBalanceOf() public {
-        vm.prank(address(yulDeployer));
-        ERC20YulContract.mint(address(this), 10);
-        console.log(ERC20YulContract.balanceOf(address(this)));
-    }
-
-    function testTransfer() public {
-        vm.prank(address(yulDeployer));
-        ERC20YulContract.mint(address(this), 10);
-        console.log(ERC20YulContract.balanceOf(address(this)));
-        ERC20YulContract.transfer(address(yulDeployer), 5);
-        console.log(ERC20YulContract.balanceOf(address(yulDeployer)));
-    }
-
-    function testGetAllowance() public {
-        console.log(
-            ERC20YulContract.allowance(address(this), address(yulDeployer))
+    function test_GetAllowance() public {
+        assertEq(
+            ERC20YulContract.allowance(address(this), address(yulDeployer)),
+            0
         );
     }
 
-    function testApprove() public {
+    /* ----- Test main functions ----- */
+    function test_Mint() public {
+        vm.prank(address(yulDeployer));
+        ERC20YulContract.mint(address(this), 10);
+        assertEq(ERC20YulContract.balanceOf(address(this)), 10);
+    }
+
+    function test_MintRevert_NotOwner() public {
+        vm.expectRevert();
+        ERC20YulContract.mint(address(this), 10);
+    }
+
+    function test_TotalSupplyIncrease() public {
+        vm.prank(address(yulDeployer));
+        ERC20YulContract.mint(address(this), 10);
+        assertEq(ERC20YulContract.totalSupply(), 10);
+    }
+
+    function test_Approve() public {
         ERC20YulContract.approve(address(yulDeployer), 20);
-        console.log(
-            ERC20YulContract.allowance(address(this), address(yulDeployer))
+        assertEq(
+            ERC20YulContract.allowance(address(this), address(yulDeployer)),
+            20
         );
     }
 
-    function testTransferFrom() public {
-        console.log(ERC20YulContract.balanceOf(address(yulDeployer)));
+    function test_Transfer() public {
+        vm.prank(address(yulDeployer));
+        ERC20YulContract.mint(address(this), 10);
+        // check balance before
+        assertEq(ERC20YulContract.balanceOf(address(this)), 10);
+        assertEq(ERC20YulContract.balanceOf(address(yulDeployer)), 0);
+
+        ERC20YulContract.transfer(address(yulDeployer), 5);
+
+        //check balance after
+        assertEq(ERC20YulContract.balanceOf(address(this)), 5);
+        assertEq(ERC20YulContract.balanceOf(address(yulDeployer)), 5);
+    }
+
+    function test_TransferRevert_InsufficiantBalance() public {
+        vm.prank(address(yulDeployer));
+        ERC20YulContract.mint(address(this), 10);
+
+        vm.expectRevert();
+        ERC20YulContract.transfer(address(yulDeployer), 15);
+    }
+
+    function test_TransferFrom() public {
         vm.prank(address(yulDeployer));
         ERC20YulContract.mint(address(this), 30);
-        console.log(
-            ERC20YulContract.allowance(address(this), address(yulDeployer))
-        );
         ERC20YulContract.approve(address(yulDeployer), 20);
-        console.log(
-            ERC20YulContract.allowance(address(this), address(yulDeployer))
-        );
+
+        //check balance before
+        assertEq(ERC20YulContract.balanceOf(address(this)), 30);
+        assertEq(ERC20YulContract.balanceOf(address(yulDeployer)), 0);
+
         vm.prank(address(yulDeployer));
         ERC20YulContract.transferFrom(address(this), address(yulDeployer), 15);
-        console.log(ERC20YulContract.balanceOf(address(yulDeployer)));
-        console.log(
-            ERC20YulContract.allowance(address(this), address(yulDeployer))
+
+        //check balance after
+        assertEq(ERC20YulContract.balanceOf(address(this)), 15);
+        assertEq(ERC20YulContract.balanceOf(address(yulDeployer)), 15);
+    }
+
+    function test_TransferFromRevert_InsuficientAllowance() public {
+        vm.prank(address(yulDeployer));
+        ERC20YulContract.mint(address(this), 30);
+        ERC20YulContract.approve(address(yulDeployer), 10);
+
+        vm.prank(address(yulDeployer));
+        vm.expectRevert();
+        ERC20YulContract.transferFrom(address(this), address(yulDeployer), 15);
+    }
+
+    function test_AllowanceDecrease() public {
+        uint256 allowance = 20;
+        uint256 transferAmount = 15;
+
+        vm.prank(address(yulDeployer));
+        ERC20YulContract.mint(address(this), 30);
+        ERC20YulContract.approve(address(yulDeployer), allowance);
+
+        //check allowance before
+        assertEq(
+            ERC20YulContract.allowance(address(this), address(yulDeployer)),
+            20
+        );
+
+        vm.prank(address(yulDeployer));
+        ERC20YulContract.transferFrom(
+            address(this),
+            address(yulDeployer),
+            transferAmount
+        );
+
+        //check allowance after
+        assertEq(
+            ERC20YulContract.allowance(address(this), address(yulDeployer)),
+            allowance - transferAmount
         );
     }
 }
