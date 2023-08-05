@@ -199,23 +199,22 @@ object "ERC20" {
                 return(fmp, add(0x40, symbolLength))
             }         
         }
+
         case 0x313ce567 /* decimals() */{
-            let fmp := mload(0x40)
-            mstore(fmp, decimals())
-            return(fmp, 0x20)
+            returnUint(decimals())
         }
+
         case 0x18160ddd /* totalSupply() */{
-            let fmp := mload(0x40)
-            mstore(fmp, decimals())
-            return(fmp, 0x20)
+            returnUint(totalSupply())
         }
+
         case 0x70a08231 /* balanceOf(address) */{
-            let _owner := calldataload(0x20)
-            let bal := sload(balancePos(_owner, balanceSlot()))
-            
-            let fmp := mload(0x40)
-            mstore(fmp, bal)
-            return(fmp, 0x20)
+            let _ownerOf := calldataload(0x20)
+            returnUint(balanceOf(_ownerOf))
+        }
+
+        default {
+            revert(0,0)
         }
 
 
@@ -241,6 +240,10 @@ object "ERC20" {
 
         function totalSupply() -> t {
             t := sload(totalSupplySlot())
+        }
+
+        function balanceOf(_ownerOf) -> bal {
+            bal := sload(balancePos(_ownerOf, balanceSlot()))
         }
 
     /** 
@@ -275,6 +278,12 @@ object "ERC20" {
             mstore(0, value)
             mstore(0x20, slot)
             p := keccak256(0, 0x40)
+        }
+
+        function returnUint(value) {
+            let fmp := mload(0x40)
+            mstore(fmp, value)
+            return(fmp, 0x20)
         }
       
     }
