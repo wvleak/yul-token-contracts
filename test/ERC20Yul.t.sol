@@ -37,10 +37,10 @@ contract ERC20YulTest is Test {
         ERC20YulContract = ERC20Yul(
             yulDeployer.deployContract(
                 "ERC20Yul",
-                "Lorem Ipsum is simply dummy text of the printing and typesetting industry",
-                //"wvleak",
-                //"WVK",
-                "Lorem Ipsum is simply dummy text of the printing and typesetting industry",
+                //"Lorem Ipsum is simply dummy text of the printing and typesetting industry",
+                "wvleak",
+                "WVK",
+                //"Lorem Ipsum is simply dummy text of the printing and typesetting industry",
                 18
             )
         );
