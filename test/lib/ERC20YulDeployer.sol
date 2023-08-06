@@ -4,7 +4,7 @@ pragma solidity 0.8.15;
 import "forge-std/Test.sol";
 import "forge-std/console.sol";
 
-contract YulDeployer is Test {
+contract ERC20YulDeployer is Test {
     ///@notice Compiles a Yul contract and returns the address that the contract was deployed to
     ///@notice If deployment fails, an error will be thrown
     ///@param fileName - The file name of the Yul contract. For example, the file name for "Example.yul" is "Example"

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
-import "./lib/YulDeployer.sol";
+import "./lib/ERC20YulDeployer.sol";
 
 interface ERC20Yul {
     function owner() external view returns (address);
@@ -29,7 +29,7 @@ interface ERC20Yul {
 }
 
 contract ERC20YulTest is Test {
-    YulDeployer yulDeployer = new YulDeployer();
+    ERC20YulDeployer yulDeployer = new ERC20YulDeployer();
 
     ERC20Yul ERC20YulContract;
     string name = "testToken";
