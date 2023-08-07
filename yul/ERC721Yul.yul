@@ -123,18 +123,19 @@ object "ERC721" {
                 //INTERACTION
                 if gt(extcodesize(to), 0){
                     // store the function selector onERC721Received(address,address,uint256,bytes) with arguments
-                    let fmp := mload(0x40)
+                    let fmp := mload(0x40)//0x80
+                    //mstore(0x40, fmp)
+
                     mstore(fmp, 0x150b7a02)
                     mstore(add(fmp, 0x20), from) 
                     mstore(add(fmp, 0x40), to) 
                     mstore(add(fmp, 0x60), tokenId)
-                    mstore(0x40, add(fmp, 0x80)) 
-                    let success := call(gas(), to, 0, add(fmp, 28), add(fmp, 0x80), 0x00, 0x20)
-                    if iszero(success) {
-                        revert(0,0)
-                    }
+                    mstore(add(fmp, 0x80), add(fmp, 0xa0))
+                    //mstore(0x40, add(fmp, 0x80)) 
+                    let success := staticcall(gas(), to, add(fmp, 28), 0xd0/*add(0x04, mul(0x20, 3))*/, 0, 0x20)
+                    require(success)
                     //check returned value to be `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
-                    if iszero(eq(mload(0), 0x150b7a02)) {
+                    if iszero(eq(shr(224, mload(0)), 0x150b7a02)) {
                         revert(0,0)
                     }
                 }
@@ -248,7 +249,7 @@ object "ERC721" {
 
         function deployerSlot() -> p { p := 0 }
         function tokenCounterSlot() -> p { p := 1 } 
-        // function nameSlot() -> p { p := 1 } See IERC721-Metadata
+        // function nameSlot() -> p { p := 1 } For IERC721-Metadata implementation
         // function symbolSlot() -> p { p := 2 }
         function ownersSlot() -> p { p := 4 } // mapping(uint256=>address) from token ID to owner address
         function balancesSlot() -> p { p := 5 } // mapping(address=>uint256) from owner address to token count

@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "forge-std/Test.sol";
 import "./lib/ERC721YulDeployer.sol";
+import "./lib/ERC721Receiver.sol";
 
 interface ERC721Yul {
     function balanceOf(address _owner) external view returns (uint256);
@@ -48,26 +49,42 @@ interface ERC721Yul {
 contract ERC721YulTest is Test {
     ERC721YulDeployer yulDeployer = new ERC721YulDeployer();
 
+    ERC721Receiver receiver = new ERC721Receiver();
+
     ERC721Yul ERC721YulContract;
 
     function setUp() public {
         ERC721YulContract = ERC721Yul(yulDeployer.deployContract("ERC721Yul"));
     }
 
-    function test_Mint() public {
+    function mint() internal {
         vm.prank(address(yulDeployer));
         ERC721YulContract.mint(address(this));
     }
 
+    function test_mint() public {
+        mint();
+    }
+
     function test_balanceOf() public {
-        vm.prank(address(yulDeployer));
-        ERC721YulContract.mint(address(this));
+        mint();
         assertEq(ERC721YulContract.balanceOf(address(this)), 1);
     }
 
     function test_ownerOf() public {
-        vm.prank(address(yulDeployer));
-        ERC721YulContract.mint(address(this));
+        mint();
         assertEq(ERC721YulContract.ownerOf(0), address(this));
+    }
+
+    function test_transferFrom() public {
+        mint();
+        ERC721YulContract.transferFrom(address(this), address(yulDeployer), 0);
+        assertEq(ERC721YulContract.ownerOf(0), address(yulDeployer));
+    }
+
+    function test_safeTransferFrom() public {
+        mint();
+        mint();
+        ERC721YulContract.safeTransferFrom(address(this), address(receiver), 1);
     }
 }
