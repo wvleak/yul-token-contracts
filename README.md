@@ -1,8 +1,6 @@
-# ERC20 Token in pure Yul
+# ERC721 and ERC20 Token Standards in pure Yul
 
-This is an implementation of the [eip-20](https://eips.ethereum.org/EIPS/eip-20) specification in pure Yul.
-
-(ERC721 implementation on progress)
+This is an implementation of the [eip-20](https://eips.ethereum.org/EIPS/eip-20) and [eip-721](https://eips.ethereum.org/EIPS/eip-721) specifications in pure Yul.
 
 ## Running tests
 
@@ -24,4 +22,4 @@ Add me on twitter!
 
 ## Disclaimer
 
-This contract should only be used for learning purposes. The safety and security of the contract cannot be guaranteed.
+The contracts should only be used for learning purposes. The safety and security of them cannot be guaranteed.

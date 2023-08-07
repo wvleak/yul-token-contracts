@@ -233,8 +233,8 @@ object "ERC721" {
 
             function deployerSlot() -> p { p := 0 }
             function tokenCounterSlot() -> p { p := 1 } 
-            // function nameSlot() -> p { p := 1 } For IERC721-Metadata implementation
-            // function symbolSlot() -> p { p := 2 }
+            // function nameSlot() -> p { p := 2 } For IERC721-Metadata implementation
+            // function symbolSlot() -> p { p := 3 }
             function ownersSlot() -> p { p := 4 } // mapping(uint256=>address) from token ID to owner address
             function balancesSlot() -> p { p := 5 } // mapping(address=>uint256) from owner address to token count
             function tokenApprovalsSlot() -> p { p := 6 } // mapping(uint256=>address) from token ID to approved address
