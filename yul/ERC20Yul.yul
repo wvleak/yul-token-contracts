@@ -10,7 +10,7 @@
 object "ERC20" {
   /**
    * @notice Constructor
-   * @dev the parameters are encoded after the code. The storage variables are handled like in solidity
+   * @dev the arguments are appended at the end of the contract's code. The storage variables are handled like in solidity
    * @param name The name of the ERC20 token
    * @param symbol The symbol of the ERC20 token
    * @param decimals The number of decimals of the ERC20 token
@@ -33,7 +33,7 @@ object "ERC20" {
      * GET ARGUMENTS
      * =============================================
      */
-    codecopy(0, datasize("ERC20"), sub(codesize(), datasize("ERC20"))) // encoded after the main code 
+    codecopy(0, datasize("ERC20"), sub(codesize(), datasize("ERC20"))) // encoded after the contract's code 
 
     let nameOffset := mload(0)
     let symbolOffset := mload(0x20)
@@ -350,7 +350,7 @@ object "ERC20" {
 
         function decodeUint(offset) -> i {
             i := calldataload(add(0x04, mul(offset, 0x20)))
-        }       
+        }   
       
         function returnUint(value) {
             let fmp := mload(0x40)

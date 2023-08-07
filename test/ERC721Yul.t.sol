@@ -53,4 +53,21 @@ contract ERC721YulTest is Test {
     function setUp() public {
         ERC721YulContract = ERC721Yul(yulDeployer.deployContract("ERC721Yul"));
     }
+
+    function test_Mint() public {
+        vm.prank(address(yulDeployer));
+        ERC721YulContract.mint(address(this));
+    }
+
+    function test_balanceOf() public {
+        vm.prank(address(yulDeployer));
+        ERC721YulContract.mint(address(this));
+        assertEq(ERC721YulContract.balanceOf(address(this)), 1);
+    }
+
+    function test_ownerOf() public {
+        vm.prank(address(yulDeployer));
+        ERC721YulContract.mint(address(this));
+        assertEq(ERC721YulContract.ownerOf(0), address(this));
+    }
 }
