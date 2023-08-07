@@ -71,6 +71,8 @@ object "ERC721" {
                 sstore(mappingValueSlot(from, balancesSlot()), sub(lastBalanceFrom, 1))
                 let lastBalanceTo := sload(mappingValueSlot(to, balancesSlot()))
                 sstore(mappingValueSlot(to, balancesSlot()), add(lastBalanceTo, 1))
+                //reset approvals
+                sstore(mappingValueSlot(tokenId, tokenApprovalsSlot()), 0)
 
                 //INTERACTION
                 if gt(extcodesize(to), 0){
@@ -92,6 +94,10 @@ object "ERC721" {
                         revert(0,0)
                     }
                 }
+
+                //EVENTS
+                emitApproval(ownerOf(tokenId), 0, tokenId)
+                emitTransfer(from, to, tokenId)
 
             }
             case 0x42842e0e /* safeTransferFrom(address, address, uint256) */{
@@ -132,6 +138,10 @@ object "ERC721" {
                         revert(0,0)
                     }
                 }
+
+                //EVENTS
+                emitApproval(ownerOf(tokenId), 0, tokenId)
+                emitTransfer(from, to, tokenId)
             }
 
             case 0x23b872dd /* transferFrom(address, address, uint256) */{
@@ -153,6 +163,10 @@ object "ERC721" {
                 sstore(mappingValueSlot(from, balancesSlot()), sub(lastBalanceFrom, 1))
                 let lastBalanceTo := sload(mappingValueSlot(to, balancesSlot()))
                 sstore(mappingValueSlot(to, balancesSlot()), add(lastBalanceTo, 1))
+
+                //EVENTS
+                emitApproval(ownerOf(tokenId), 0, tokenId)
+                emitTransfer(from, to, tokenId)
             }
 
             case 0x095ea7b3 /* approve(address,uint256) */{
@@ -163,6 +177,8 @@ object "ERC721" {
 
                 // update tokenApprovals mapping
                 sstore(mappingValueSlot(tokenId, tokenApprovalsSlot()), to)
+
+                emitApproval(ownerOf(tokenId), to, tokenId)
             }
 
             case 0xa22cb465 /* setApprovalForAll(address,bool) */{
@@ -171,6 +187,8 @@ object "ERC721" {
 
                 // update operatorApprovals mapping
                 sstore(nestedMappingValueSlot(caller(), operator, operatorApprovalsSlot()), approval)
+
+                emitApprovalForAll(caller(), operator, approval)
             }
 
             case 0x081812fc /* getApproved(uint256) */{
@@ -204,6 +222,8 @@ object "ERC721" {
                 sstore(mappingValueSlot(to, balancesSlot()), add(lastBalance, 1))
                 // update tokenCounter
                 sstore(tokenCounterSlot(), safeAdd(tokenId, 1))
+
+                emitTransfer(0, to, tokenId)
 
             }
             ///@dev See ERC165 interface
@@ -272,27 +292,39 @@ object "ERC721" {
      * =============================================
      */ 
 
-        //event Transfer(address indexed _from, address indexed _to, uint256 _value)
-        function emitTransfer(_from, _to, _value) {
-            mstore(0, _value)
-            log3(
+        //event Transfer(address indexed _from, address indexed _to, uint256 indexed _tokenId)
+        function emitTransfer(_from, _to, _tokenId) {
+            log4(
                 0,
                 0x20,
                 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef, // keccak256("Transfer(address,address,uint256)")
                 _from,
-                _to
+                _to,
+                _tokenId
             )
         }  
 
-        //event Approval(address indexed _owner, address indexed _spender, uint256 _value)
-        function emitApproval(_owner, _spender, _value) {
-            mstore(0, _value)
+        //event Approval(address indexed _owner, address indexed _approved, uint256 indexed _tokenId)
+        function emitApproval(_owner, _approved, _tokenId) {
+            log4(
+                0,
+                0,
+                0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925, // keccak256("Approval(address,address,uint256)")
+                _owner,
+                _approved,
+                _tokenId
+            )
+        }
+
+        //event ApprovalForAll(address indexed _owner, address indexed _operator, bool _approved);
+        function emitApprovalForAll(_owner, _operator, _approved) {
+            mstore(0, _approved)
             log3(
                 0,
                 0x20,
-                0x8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925, // keccak256("Approval(address,address,uint256)")
+                0x17307eab39ab6107e8899845ad3d59bd9653f200f220920489ca2b5937696c31, // keccak256("ApprovalForAll(address,address,bool)")
                 _owner,
-                _spender
+                _operator
             )
         }
 

@@ -205,6 +205,8 @@ object "ERC20" {
             //decrease allowance
             sstore(allowancePos(from, caller()), sub(allowance(from, caller()), amount))
 
+            emitTransfer(from, to, amount)
+
             returnTrue()
         }
 
