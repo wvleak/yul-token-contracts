@@ -82,15 +82,16 @@ object "ERC721" {
                     mstore(add(fmp, 0x20), from) 
                     mstore(add(fmp, 0x40), to) 
                     mstore(add(fmp, 0x60), tokenId)
+                    mstore(add(fmp, 0x80), add(fmp, 0xa0))
                     // update free memory pointer
-                    mstore(0x40, add(fmp, 0x80)) 
+                    mstore(0x40, add(fmp, 0xa0)) 
                     // call onERC721Received
                     let success := call(gas(), to, 0, add(fmp, 28), decodeBytes(3), 0x00, 0x20)
                     if iszero(success) {
                         revert(0,0)
                     }
                     //check returned value to be `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
-                    if iszero(eq(mload(0), 0x150b7a02)) {
+                    if iszero(eq(shr(224, mload(0)), 0x150b7a02)) {
                         revert(0,0)
                     }
                 }
@@ -131,8 +132,9 @@ object "ERC721" {
                     mstore(add(fmp, 0x40), to) 
                     mstore(add(fmp, 0x60), tokenId)
                     mstore(add(fmp, 0x80), add(fmp, 0xa0))
-                    //mstore(0x40, add(fmp, 0x80)) 
-                    let success := staticcall(gas(), to, add(fmp, 28), 0xd0/*add(0x04, mul(0x20, 3))*/, 0, 0x20)
+                    //update free memory pointer
+                    mstore(0x40, add(fmp, 0xd0)) 
+                    let success := staticcall(gas(), to, add(fmp, 28), 0xc4, 0, 0x20)
                     require(success)
                     //check returned value to be `bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"))`
                     if iszero(eq(shr(224, mload(0)), 0x150b7a02)) {
@@ -224,12 +226,14 @@ object "ERC721" {
                 // update tokenCounter
                 sstore(tokenCounterSlot(), safeAdd(tokenId, 1))
 
+                returnUint(tokenId)
+
                 emitTransfer(0, to, tokenId)
 
             }
             ///@dev See ERC165 interface
             case 0x01ffc9a7 /* supportsInterface(bytes4) */{
-                let interfaceId := decodeUint(0)
+                let interfaceId := shr(224, decodeUint(0))
                 let ERC721InterfaceId := 0x80ac58cd
                 let ERC165InterfaceId := 0x01ffc9a7
                 returnUint(or(eq(interfaceId, ERC721InterfaceId), eq(interfaceId, ERC165InterfaceId)))

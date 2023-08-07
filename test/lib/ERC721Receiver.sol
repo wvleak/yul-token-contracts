@@ -20,10 +20,11 @@ contract ERC721Receiver {
         uint256 tokenId,
         bytes memory data
     ) public returns (bytes4) {
-        console.log("entered");
-        console.logBytes4(this.onERC721Received.selector);
-        console.log(tokenId);
-        console.logBytes(data);
+        //for debugging
+        // console.logBytes4(this.onERC721Received.selector);
+        // console.log(tokenId);
+        // console.logBytes(data);
+
         return this.onERC721Received.selector;
     }
 }
