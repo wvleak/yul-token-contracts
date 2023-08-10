@@ -9,7 +9,11 @@ contract ERC721YulDeployer is Test {
     ///@notice If deployment fails, an error will be thrown
     ///@param fileName - The file name of the Yul contract. For example, the file name for "Example.yul" is "Example"
     ///@return deployedAddress - The address that the contract was deployed to
-    function deployContract(string memory fileName) public returns (address) {
+    function deployContract(
+        string memory fileName,
+        string calldata name,
+        string calldata symbol
+    ) public returns (address) {
         string memory bashCommand = string.concat(
             'cast abi-encode "f(bytes)" $(solc --strict-assembly yul/',
             string.concat(fileName, ".yul --bin | grep '^[0-9a-fA-Z]*$')")
@@ -21,19 +25,22 @@ contract ERC721YulDeployer is Test {
         inputs[2] = bashCommand;
 
         bytes memory bytecode = abi.decode(vm.ffi(inputs), (bytes));
-        // console.logBytes(bytecode);
-        // bytes32 test;
+
+        ///@dev encode the constructor arguments after the code
+        bytes memory bytecodeWithArgs = abi.encodePacked(
+            bytecode,
+            abi.encode(name, symbol)
+        );
 
         ///@notice deploy the bytecode with the create instruction
         address deployedAddress;
         assembly {
-            deployedAddress := create(0, add(bytecode, 0x20), mload(bytecode))
+            deployedAddress := create(
+                0,
+                add(bytecodeWithArgs, 0x20),
+                mload(bytecodeWithArgs)
+            )
         }
-        // assembly {
-        //     let pos := add(bytecode, 0x20)
-        //     test := mload(pos)
-        // }
-        // console.logBytes32(test);
 
         ///@notice check that the deployment was successful
         require(

@@ -6,6 +6,12 @@ import "./lib/ERC721YulDeployer.sol";
 import "./lib/ERC721Receiver.sol";
 
 interface ERC721Yul {
+    function deployer() external view returns (address);
+
+    function name() external view returns (string memory);
+
+    function symbol() external view returns (string memory);
+
     function balanceOf(address _owner) external view returns (uint256);
 
     function ownerOf(uint256 _tokenId) external view returns (address);
@@ -52,11 +58,23 @@ contract ERC721YulTest is Test {
     ERC721Receiver receiver = new ERC721Receiver();
 
     ERC721Yul ERC721YulContract;
+    string name = "TestName";
+    string symbol = "TST";
 
     function setUp() public {
-        ERC721YulContract = ERC721Yul(yulDeployer.deployContract("ERC721Yul"));
+        ERC721YulContract = ERC721Yul(
+            yulDeployer.deployContract("ERC721Yul", name, symbol)
+        );
     }
 
+    /* ----- Test deployment ----- */
+    function test_Init() public {
+        assertEq(ERC721YulContract.deployer(), address(yulDeployer));
+        assertEq(ERC721YulContract.name(), name);
+        assertEq(ERC721YulContract.symbol(), symbol);
+    }
+
+    /* ----- Test main functions ----- */
     function mint() internal returns (uint256 _tokenId) {
         vm.prank(address(yulDeployer));
         _tokenId = ERC721YulContract.mint(address(this));
@@ -192,6 +210,7 @@ contract ERC721YulTest is Test {
 
     function test_supportsInterface() public {
         assertTrue(ERC721YulContract.supportsInterface(0x80ac58cd)); // IERC721
+        assertTrue(ERC721YulContract.supportsInterface(0x5b5e139f)); // IERC721Metadata
         assertTrue(ERC721YulContract.supportsInterface(0x01ffc9a7)); //IERC165
     }
 }

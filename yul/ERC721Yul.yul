@@ -18,14 +18,83 @@ object "ERC721" {
 
     code {
     /** 
+     * =============================================
+     * HELPERS
+     * =============================================
+     */
+        function getStringLocation(slot) -> l {
+            mstore(0, slot)
+            l := keccak256(0, 0x20)
+        }  
+
+        function setString(offset, slot) {
+            let stringLength := mload(offset)
+            if lt(stringLength, 0x20){
+                let stringData := mload(add(offset, 0x20))
+                sstore(slot, or(stringData, mul(stringLength, 2))) // store stringLength * 2 to ensure the lowest bit is set to 0, which distinguishes short arrays from long arrays.
+            }
+            if gt(stringLength, 0x1f){
+                sstore(slot, add(mul(stringLength, 2), 1)) // store stringLength * 2 + 1 to ensure the lowest bit is set to 1, which distinguishes long arrays from short arrays.
+                let stringLocation := getStringLocation(slot)
+
+                // Get the count of storage slots that will occupy the string
+                let storageSlotCount
+                if eq(mod(stringLength, 0x20), 0) {
+                    storageSlotCount := div(stringLength, 0x20)
+                }
+                if iszero(eq(mod(stringLength, 0x20), 0)){
+                    storageSlotCount := add(div(stringLength, 0x20), 1)
+                }
+
+                // Store in storage
+                for 
+                    { let i := 0 }
+                    lt(i, storageSlotCount)
+                    { i := add(i, 1) }
+                {
+                    sstore(
+                        add(stringLocation, i),
+                        mload(add(offset, mul(0x20, add(i, 1))))
+                    )
+                }
+            }
+        }
+
+    /** 
     * =============================================
     * STORAGE SLOTS
     * =============================================
     */
-        function ownerSlot() -> p { p := 0 }  
+        function deployerSlot() -> p { p := 0 }  
+        function nameSlot() -> p { p := 2 } 
+        function symbolSlot() -> p { p := 3 }
+    
+
+    /** 
+     * =============================================
+     * GET ARGUMENTS
+     * =============================================
+     */
+        codecopy(0, datasize("ERC721"), sub(codesize(), datasize("ERC721"))) // encoded after the contract's code 
+
+        let nameOffset := mload(0)
+        let symbolOffset := mload(0x20)
+
+    /** 
+     * =============================================
+     * SET IN STORAGE
+     * =============================================
+     */
 
         /* set owner (the deployer) */
-        sstore(ownerSlot(), caller())
+        sstore(deployerSlot(), caller())
+
+        /* set name */
+        setString(nameOffset, nameSlot())
+
+        /* set symbol */
+        setString(symbolOffset, symbolSlot())
+
 
 
     /** 
@@ -36,9 +105,21 @@ object "ERC721" {
         datacopy(0, dataoffset("Runtime"), datasize("Runtime"))
         return(0, datasize("Runtime"))
     }
+
+    /*--------------------- Contract Code -------------------------*/
+
     object "Runtime" {
         code {
             switch selector()
+            case 0xd5f39488 /* deployer() */{
+                returnUint(deployer())
+            }
+            case 0x06fdde03 /* name() */{
+            returnString(name(), nameSlot())
+            }
+            case 0x95d89b41 /* symbol() */{
+                returnString(symbol(), symbolSlot())      
+            }
             case 0x70a08231 /* balanceOf(address) */{
                 let owner := decodeAddress(0)
                 returnUint(balanceOf(owner))
@@ -216,8 +297,9 @@ object "ERC721" {
             case 0x01ffc9a7 /* supportsInterface(bytes4) */{
                 let interfaceId := shr(224, decodeUint(0))
                 let ERC721InterfaceId := 0x80ac58cd
+                let ERC721MetadataInterfaceId := 0x5b5e139f
                 let ERC165InterfaceId := 0x01ffc9a7
-                returnUint(or(eq(interfaceId, ERC721InterfaceId), eq(interfaceId, ERC165InterfaceId)))
+                returnUint(or(or(eq(interfaceId, ERC721InterfaceId), eq(interfaceId, ERC165InterfaceId)), eq(interfaceId, ERC721MetadataInterfaceId)))
             }
             default {
                 revert(0,0)
@@ -233,8 +315,8 @@ object "ERC721" {
 
             function deployerSlot() -> p { p := 0 }
             function tokenCounterSlot() -> p { p := 1 } 
-            // function nameSlot() -> p { p := 2 } For IERC721-Metadata implementation
-            // function symbolSlot() -> p { p := 3 }
+            function nameSlot() -> p { p := 2 }
+            function symbolSlot() -> p { p := 3 }
             function ownersSlot() -> p { p := 4 } // mapping(uint256=>address) from token ID to owner address
             function balancesSlot() -> p { p := 5 } // mapping(address=>uint256) from owner address to token count
             function tokenApprovalsSlot() -> p { p := 6 } // mapping(uint256=>address) from token ID to approved address
@@ -248,6 +330,13 @@ object "ERC721" {
 
             function deployer() -> d {
                 d := sload(deployerSlot())
+            }
+            function name() -> n {
+            n := sload(nameSlot())
+            }
+
+            function symbol() -> s {
+                s := sload(symbolSlot())
             }
 
             function tokenCounter() -> c {
@@ -321,6 +410,11 @@ object "ERC721" {
 
             function selector() -> s {
                 s := shr(224, calldataload(0))
+            }
+            /// @dev get the slot where is stored the string data
+            function getStringLocation(slot) -> l {
+                mstore(0, slot)
+                l := keccak256(0, 0x20)
             }       
 
             /// @dev get the slot where is stored the balance
@@ -385,6 +479,45 @@ object "ERC721" {
             function returnTrue() {
                 mstore(0, 1)
                 return(0, 0x20)
+            }
+
+            function returnString(stringData, slot) {
+                let fmp := mload(0x40)
+                // if small string
+                if iszero(and(stringData, 1)) {
+                    let stringLength := div(and(stringData, 0xff), 2)
+                    let stringValue := and(stringData, not(0xff))
+                    mstore(fmp, 0x20)
+                    mstore(add(fmp, 0x20), stringLength)
+                    mstore(add(fmp, 0x40), stringValue)
+                    return(fmp, add(0x40, stringLength))
+                }
+                // if large string
+                if and(stringData, 1) {
+                    let stringLength := div(stringData, 2)
+                    let stringLocation := getStringLocation(slot)
+                    mstore(fmp, 0x20)
+                    mstore(add(fmp, 0x20), stringLength)
+
+                    // Retrieve the count of occupied storage slots used to store the string.
+                    let storageSlotCount 
+                    if eq(mod(stringLength, 0x20), 0) {
+                        storageSlotCount := div(stringLength, 0x20)
+                    }
+                    if iszero(eq(mod(stringLength, 0x20), 0)){
+                        storageSlotCount := add(div(stringLength, 0x20), 1)
+                    }
+                    // Store the string in memory
+                    for { let i := 0 } lt(i, storageSlotCount) { i := add(i, 1) }
+                    {
+                        mstore(
+                            add(fmp, mul(0x40, add(i, 1))),
+                            sload(add(stringLocation, i))
+                        )
+                    }
+                    
+                    return(fmp, add(0x40, stringLength))
+                }     
             }
             
 
