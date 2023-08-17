@@ -1,6 +1,6 @@
 # ERC721 and ERC20 Token Standards in pure Yul
 
-This is an implementation of the [eip-20](https://eips.ethereum.org/EIPS/eip-20) and [eip-721](https://eips.ethereum.org/EIPS/eip-721) specifications in pure Yul.
+These are implementations of the [eip-20](https://eips.ethereum.org/EIPS/eip-20) and [eip-721](https://eips.ethereum.org/EIPS/eip-721) specifications in pure Yul.
 
 ## Running tests
 
